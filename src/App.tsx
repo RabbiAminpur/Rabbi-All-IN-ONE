@@ -58,7 +58,7 @@ export default function App() {
   };
 
   return (
-    <div className={cn("min-h-screen pb-24 safe-area-inset-bottom", isDarkMode ? "dark" : "")}>
+    <div className={cn("min-h-screen pb-24 safe-area-inset-bottom text-slate-900 dark:text-slate-100", isDarkMode ? "dark" : "")}>
       <main className="max-w-md mx-auto px-4 pt-6">
         <AnimatePresence mode="wait">
           <motion.div
