@@ -11,6 +11,7 @@ export default function GoalsView({ lang }: { lang: Language }) {
   const [showSaveModal, setShowSaveModal] = useState<{ id: number; title: string } | null>(null);
   const [saveAmount, setSaveAmount] = useState('');
   const [newGoal, setNewGoal] = useState({ title: '', targetAmount: '', years: '1', months: '0' });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
 
   const goals = useLiveQuery(() => db.goals.toArray());
 
@@ -49,9 +50,8 @@ export default function GoalsView({ lang }: { lang: Language }) {
   };
 
   const deleteGoal = async (id: number) => {
-    if (confirm(t.confirm_reset)) {
-      await db.goals.delete(id);
-    }
+    await db.goals.delete(id);
+    setShowDeleteConfirm(null);
   };
 
   const getGoalStats = (goal: Goal) => {
@@ -132,7 +132,7 @@ export default function GoalsView({ lang }: { lang: Language }) {
                       <PiggyBank size={20} />
                     </button>
                     <button 
-                      onClick={() => goal.id && deleteGoal(goal.id)}
+                      onClick={() => goal.id && setShowDeleteConfirm(goal.id)}
                       className="p-2 text-slate-400 hover:text-red-500 rounded-xl transition-colors"
                     >
                       <Trash2 size={18} />
@@ -185,6 +185,42 @@ export default function GoalsView({ lang }: { lang: Language }) {
           })
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm !== null && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[150] p-6">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-lg font-bold mb-2">{lang === 'bn' ? 'আপনি কি নিশ্চিত?' : 'Are you sure?'}</h3>
+              <p className="text-slate-500 text-sm mb-6">
+                {t.confirm_reset}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm"
+                >
+                  {lang === 'bn' ? 'না' : 'No'}
+                </button>
+                <button 
+                  onClick={() => showDeleteConfirm && deleteGoal(showDeleteConfirm)}
+                  className="py-3 bg-red-500 text-white rounded-xl font-bold text-sm"
+                >
+                  {lang === 'bn' ? 'হ্যাঁ' : 'Yes'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Add Goal Modal */}
       <AnimatePresence>

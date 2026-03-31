@@ -13,7 +13,10 @@ export default function ProjectBudgetView({ lang, onBack }: { lang: Language, on
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ProjectBudget | null>(null);
 
-  const handleDownload = () => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDownload = async () => {
     if (!projects || projects.length === 0) return;
 
     const title = lang === 'bn' ? 'খরচ ক্যালকুলেটর রিপোর্ট' : 'Expense Calculator Report';
@@ -31,7 +34,11 @@ export default function ProjectBudgetView({ lang, onBack }: { lang: Language, on
       new Date(p.createdAt).toLocaleDateString()
     ]);
 
-    exportDataToPDF(title, columns, data, 'project_budgets');
+    try {
+      await exportDataToPDF(title, columns, data, 'project_budgets', lang);
+    } catch (err) {
+      setError(lang === 'bn' ? 'PDF তৈরি করতে সমস্যা হয়েছে।' : 'Failed to create PDF.');
+    }
   };
   
   // New Project State
@@ -70,9 +77,8 @@ export default function ProjectBudgetView({ lang, onBack }: { lang: Language, on
   };
 
   const deleteProject = async (id: number) => {
-    if (confirm(lang === 'bn' ? 'আপনি কি এটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this?')) {
-      await db.projectBudgets.delete(id);
-    }
+    await db.projectBudgets.delete(id);
+    setShowDeleteConfirm(null);
   };
 
   return (
@@ -116,7 +122,7 @@ export default function ProjectBudgetView({ lang, onBack }: { lang: Language, on
                 <p className="text-xs text-slate-500">{new Date(project.createdAt).toLocaleDateString()}</p>
               </div>
               <button 
-                onClick={() => project.id && deleteProject(project.id)}
+                onClick={() => project.id && setShowDeleteConfirm(project.id)}
                 className="p-2 text-slate-400 hover:text-red-500 transition-colors"
               >
                 <Trash2 size={18} />
@@ -152,7 +158,56 @@ export default function ProjectBudgetView({ lang, onBack }: { lang: Language, on
         ))}
       </div>
 
-      {/* Add Modal */}
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm !== null && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[150] p-6">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-lg font-bold mb-2">{lang === 'bn' ? 'আপনি কি নিশ্চিত?' : 'Are you sure?'}</h3>
+              <p className="text-slate-500 text-sm mb-6">
+                {lang === 'bn' ? 'এটি স্থায়ীভাবে মুছে ফেলা হবে।' : 'This action cannot be undone.'}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm"
+                >
+                  {lang === 'bn' ? 'না' : 'No'}
+                </button>
+                <button 
+                  onClick={() => deleteProject(showDeleteConfirm)}
+                  className="py-3 bg-red-500 text-white rounded-xl font-bold text-sm"
+                >
+                  {lang === 'bn' ? 'হ্যাঁ' : 'Yes'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Error Toast */}
+      <AnimatePresence>
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-24 left-4 right-4 bg-red-500 text-white p-4 rounded-2xl shadow-lg z-[200] flex justify-between items-center"
+          >
+            <span className="text-sm font-medium">{error}</span>
+            <button onClick={() => setError(null)}><X size={18} /></button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[110] p-4" onClick={() => setShowAddModal(false)}>

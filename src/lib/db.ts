@@ -51,12 +51,12 @@ export class RabbiDatabase extends Dexie {
 
   constructor() {
     super('RabbiDB');
-    this.version(2).stores({
+    this.version(3).stores({
       transactions: '++id, type, category, date',
       notes: '++id, title, createdAt, updatedAt',
       budgets: '++id, [month+category]',
       goals: '++id, title',
-      projectBudgets: '++id, title'
+      projectBudgets: '++id, title, createdAt'
     });
   }
 }

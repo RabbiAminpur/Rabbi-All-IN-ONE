@@ -1,6 +1,8 @@
 import { translations, type Language } from '../lib/utils';
 import { Globe, Moon, Sun, Trash2, Info, ChevronRight, Download } from 'lucide-react';
 import { db } from '../lib/db';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function SettingsView({ 
   lang, 
@@ -18,6 +20,7 @@ export default function SettingsView({
   setDeferredPrompt: (prompt: any) => void
 }) {
   const t = translations[lang];
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -29,12 +32,12 @@ export default function SettingsView({
   };
 
   const handleReset = async () => {
-    if (confirm(t.confirm_reset)) {
-      await db.transactions.clear();
-      await db.notes.clear();
-      await db.budgets.clear();
-      window.location.reload();
-    }
+    await db.transactions.clear();
+    await db.notes.clear();
+    await db.budgets.clear();
+    await db.goals.clear();
+    await db.projectBudgets.clear();
+    window.location.reload();
   };
 
   return (
@@ -105,7 +108,7 @@ export default function SettingsView({
 
         <section className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800">
           <button 
-            onClick={handleReset}
+            onClick={() => setShowResetConfirm(true)}
             className="w-full p-4 flex items-center justify-between active:bg-red-50 dark:active:bg-red-900/10 transition-colors text-red-600"
           >
             <div className="flex items-center gap-3">
@@ -118,6 +121,42 @@ export default function SettingsView({
             </div>
           </button>
         </section>
+
+        {/* Reset Confirmation Modal */}
+        <AnimatePresence>
+          {showResetConfirm && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[150] p-6">
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl"
+              >
+                <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 size={32} />
+                </div>
+                <h3 className="text-lg font-bold mb-2">{lang === 'bn' ? 'আপনি কি নিশ্চিত?' : 'Are you sure?'}</h3>
+                <p className="text-slate-500 text-sm mb-6">
+                  {t.confirm_reset}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => setShowResetConfirm(false)}
+                    className="py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm text-slate-900 dark:text-white"
+                  >
+                    {lang === 'bn' ? 'না' : 'No'}
+                  </button>
+                  <button 
+                    onClick={handleReset}
+                    className="py-3 bg-red-500 text-white rounded-xl font-bold text-sm"
+                  >
+                    {lang === 'bn' ? 'হ্যাঁ' : 'Yes'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         <section className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 text-center">
           <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 overflow-hidden">

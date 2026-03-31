@@ -39,6 +39,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
   const [budgetAmount, setBudgetAmount] = useState('');
   const [budgetCategory, setBudgetCategory] = useState('');
   const [editingBudgetId, setEditingBudgetId] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ type: 'transaction' | 'budget', id: number } | null>(null);
 
   // Form State
   const [amount, setAmount] = useState('');
@@ -126,15 +127,13 @@ export default function TrackerView({ lang }: { lang: Language }) {
   };
 
   const handleDeleteBudget = async (id: number) => {
-    if (confirm(lang === 'bn' ? 'আপনি কি এই বাজেট মুছে ফেলতে চান?' : 'Are you sure you want to delete this budget?')) {
-      await db.budgets.delete(id);
-    }
+    await db.budgets.delete(id);
+    setShowDeleteConfirm(null);
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm(lang === 'bn' ? 'আপনি কি এটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this?')) {
-      await db.transactions.delete(id);
-    }
+    await db.transactions.delete(id);
+    setShowDeleteConfirm(null);
   };
 
   const [isExporting, setIsExporting] = useState(false);
@@ -248,7 +247,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
       ];
     });
 
-    exportDataToPDF(title, columns, data, `budget_report_${currentMonth}`);
+    exportDataToPDF(title, columns, data, `budget_report_${currentMonth}`, lang);
   };
 
   const budgetSummary = useMemo(() => {
@@ -375,7 +374,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
                         {tx.type === 'income' ? '+' : '-'}৳{tx.amount}
                       </p>
                       <button 
-                        onClick={() => tx.id && handleDelete(tx.id)}
+                        onClick={() => tx.id && setShowDeleteConfirm({ type: 'transaction', id: tx.id })}
                         className="p-2 text-slate-300 hover:text-red-500 transition-colors"
                       >
                         <Trash2 size={16} />
@@ -521,7 +520,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
                                 {t.edit}
                               </button>
                               <button 
-                                onClick={() => b.id && handleDeleteBudget(b.id)}
+                                onClick={() => b.id && setShowDeleteConfirm({ type: 'budget', id: b.id })}
                                 className="text-[10px] font-bold text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 {t.delete}
@@ -569,6 +568,45 @@ export default function TrackerView({ lang }: { lang: Language }) {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm !== null && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[150] p-6">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-lg font-bold mb-2">{lang === 'bn' ? 'আপনি কি নিশ্চিত?' : 'Are you sure?'}</h3>
+              <p className="text-slate-500 text-sm mb-6">
+                {lang === 'bn' ? 'এটি স্থায়ীভাবে মুছে ফেলা হবে।' : 'This action cannot be undone.'}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm"
+                >
+                  {lang === 'bn' ? 'না' : 'No'}
+                </button>
+                <button 
+                  onClick={() => {
+                    if (showDeleteConfirm.type === 'budget') handleDeleteBudget(showDeleteConfirm.id);
+                    else handleDelete(showDeleteConfirm.id);
+                  }}
+                  className="py-3 bg-red-500 text-white rounded-xl font-bold text-sm"
+                >
+                  {lang === 'bn' ? 'হ্যাঁ' : 'Yes'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Add Transaction Modal */}
       {showAddForm && (

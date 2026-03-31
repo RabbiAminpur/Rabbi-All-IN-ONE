@@ -27,6 +27,7 @@ export default function NotebookView({ lang }: { lang: Language }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
 
   const notes = useLiveQuery(() => 
     db.notes.orderBy('updatedAt').reverse().toArray()
@@ -101,10 +102,9 @@ export default function NotebookView({ lang }: { lang: Language }) {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm(lang === 'bn' ? 'আপনি কি এই নোটটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this note?')) {
-      await db.notes.delete(id);
-      if (viewingNote?.id === id) setViewingNote(null);
-    }
+    await db.notes.delete(id);
+    if (viewingNote?.id === id) setViewingNote(null);
+    setShowDeleteConfirm(null);
   };
 
   const [isExporting, setIsExporting] = useState(false);
@@ -175,6 +175,42 @@ export default function NotebookView({ lang }: { lang: Language }) {
         </>
       )}
 
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm !== null && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[150] p-6">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-lg font-bold mb-2">{lang === 'bn' ? 'আপনি কি নিশ্চিত?' : 'Are you sure?'}</h3>
+              <p className="text-slate-500 text-sm mb-6">
+                {lang === 'bn' ? 'এই নোটটি স্থায়ীভাবে মুছে ফেলা হবে।' : 'This note will be permanently deleted.'}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm"
+                >
+                  {lang === 'bn' ? 'না' : 'No'}
+                </button>
+                <button 
+                  onClick={() => showDeleteConfirm && handleDelete(showDeleteConfirm)}
+                  className="py-3 bg-red-500 text-white rounded-xl font-bold text-sm"
+                >
+                  {lang === 'bn' ? 'হ্যাঁ' : 'Yes'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Note Viewer */}
       <AnimatePresence>
         {viewingNote && (
@@ -207,7 +243,7 @@ export default function NotebookView({ lang }: { lang: Language }) {
                     <Edit3 size={20} />
                   </button>
                   <button 
-                    onClick={() => viewingNote.id && handleDelete(viewingNote.id)}
+                    onClick={() => viewingNote.id && setShowDeleteConfirm(viewingNote.id)}
                     className="p-2 bg-red-50 dark:bg-red-900/20 rounded-xl shadow-sm border border-red-100 dark:border-red-900/30 text-red-600"
                   >
                     <Trash2 size={20} />
