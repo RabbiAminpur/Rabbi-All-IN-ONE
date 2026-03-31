@@ -1,19 +1,32 @@
 import { translations, type Language } from '../lib/utils';
-import { Globe, Moon, Sun, Trash2, Info, ChevronRight } from 'lucide-react';
+import { Globe, Moon, Sun, Trash2, Info, ChevronRight, Download } from 'lucide-react';
 import { db } from '../lib/db';
 
 export default function SettingsView({ 
   lang, 
   toggleLang, 
   toggleTheme, 
-  isDarkMode 
+  isDarkMode,
+  deferredPrompt,
+  setDeferredPrompt
 }: { 
   lang: Language, 
   toggleLang: () => void, 
   toggleTheme: () => void,
-  isDarkMode: boolean
+  isDarkMode: boolean,
+  deferredPrompt: any,
+  setDeferredPrompt: (prompt: any) => void
 }) {
   const t = translations[lang];
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleReset = async () => {
     if (confirm(t.confirm_reset)) {
@@ -67,6 +80,27 @@ export default function SettingsView({
               <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isDarkMode ? 'left-6' : 'left-1'}`} />
             </div>
           </button>
+
+          {deferredPrompt && (
+            <>
+              <div className="h-px bg-slate-100 dark:bg-slate-800 mx-4" />
+              <button 
+                onClick={handleInstall}
+                className="w-full p-4 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-800 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600">
+                    <Download size={20} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-sm">{lang === 'bn' ? 'অ্যাপটি ইনস্টল করুন' : 'Install App'}</p>
+                    <p className="text-xs text-slate-500">{lang === 'bn' ? 'সহজ অ্যাক্সেসের জন্য' : 'For easier access'}</p>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-300" />
+              </button>
+            </>
+          )}
         </section>
 
         <section className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800">

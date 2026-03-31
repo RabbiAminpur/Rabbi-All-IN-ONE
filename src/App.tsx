@@ -17,10 +17,16 @@ export default function App() {
   const [lang, setLang] = useState<Language>('bn');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const t = translations[lang];
 
   useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+    
     const savedLang = localStorage.getItem('prottoy_lang') as Language;
     if (savedLang) setLang(savedLang);
     
@@ -56,7 +62,16 @@ export default function App() {
       case 'notes': return <NotebookView lang={lang} />;
       case 'final': return <FinalAccountsView lang={lang} />;
       case 'goals': return <GoalsView lang={lang} />;
-      case 'settings': return <SettingsView lang={lang} toggleLang={toggleLang} toggleTheme={toggleTheme} isDarkMode={isDarkMode} />;
+      case 'settings': return (
+        <SettingsView 
+          lang={lang} 
+          toggleLang={toggleLang} 
+          toggleTheme={toggleTheme} 
+          isDarkMode={isDarkMode} 
+          deferredPrompt={deferredPrompt}
+          setDeferredPrompt={setDeferredPrompt}
+        />
+      );
       default: return <HomeView lang={lang} setActiveTab={setActiveTab} />;
     }
   };
