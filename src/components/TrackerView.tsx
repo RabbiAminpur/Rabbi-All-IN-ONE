@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type Transaction } from '../lib/db';
+import { db, type Transaction, type Budget } from '../lib/db';
 import { translations, type Language, cn } from '../lib/utils';
 import { exportToPDF } from '../lib/pdfUtils';
 import { 
@@ -13,7 +13,8 @@ import {
   ArrowUpRight, 
   ArrowDownLeft,
   PieChart as PieChartIcon,
-  List as ListIcon
+  List as ListIcon,
+  Target
 } from 'lucide-react';
 import { 
   PieChart, 
@@ -30,10 +31,12 @@ import { motion, AnimatePresence } from 'motion/react';
 
 export default function TrackerView({ lang }: { lang: Language }) {
   const t = translations[lang];
-  const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'chart' | 'budget'>('list');
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [formType, setFormType] = useState<'income' | 'expense'>('expense');
+  const [showBudgetForm, setShowBudgetForm] = useState(false);
+  const [budgetAmount, setBudgetAmount] = useState('');
 
   // Form State
   const [amount, setAmount] = useState('');
@@ -41,8 +44,14 @@ export default function TrackerView({ lang }: { lang: Language }) {
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
   const transactions = useLiveQuery(() => 
     db.transactions.orderBy('date').reverse().toArray()
+  );
+
+  const budget = useLiveQuery(() => 
+    db.budgets.where('month').equals(currentMonth).first()
   );
 
   const filteredTransactions = useMemo(() => {
@@ -52,11 +61,16 @@ export default function TrackerView({ lang }: { lang: Language }) {
   }, [transactions, filter]);
 
   const stats = useMemo(() => {
-    if (!transactions) return { income: 0, expense: 0, balance: 0 };
+    if (!transactions) return { income: 0, expense: 0, balance: 0, currentMonthExpense: 0 };
     const income = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
     const expense = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
-    return { income, expense, balance: income - expense };
-  }, [transactions]);
+    
+    const currentMonthExpense = transactions
+      .filter(t => t.type === 'expense' && new Date(t.date).toISOString().slice(0, 7) === currentMonth)
+      .reduce((acc, curr) => acc + curr.amount, 0);
+
+    return { income, expense, balance: income - expense, currentMonthExpense };
+  }, [transactions, currentMonth]);
 
   const chartData = useMemo(() => {
     if (!transactions) return [];
@@ -87,6 +101,22 @@ export default function TrackerView({ lang }: { lang: Language }) {
     setShowAddForm(false);
   };
 
+  const handleBudgetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!budgetAmount) return;
+
+    if (budget?.id) {
+      await db.budgets.update(budget.id, { amount: parseFloat(budgetAmount) });
+    } else {
+      await db.budgets.add({
+        month: currentMonth,
+        amount: parseFloat(budgetAmount)
+      });
+    }
+    setShowBudgetForm(false);
+    setBudgetAmount('');
+  };
+
   const handleDelete = async (id: number) => {
     if (confirm(lang === 'bn' ? 'আপনি কি এটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this?')) {
       await db.transactions.delete(id);
@@ -100,6 +130,9 @@ export default function TrackerView({ lang }: { lang: Language }) {
     await exportToPDF('tracker-content', 'prottoy-report');
     setIsExporting(false);
   };
+
+  const budgetProgress = budget ? (stats.currentMonthExpense / budget.amount) * 100 : 0;
+  const isOverBudget = budgetProgress > 100;
 
   return (
     <div className="space-y-6">
@@ -116,12 +149,26 @@ export default function TrackerView({ lang }: { lang: Language }) {
           >
             <Download size={20} className={isExporting ? "animate-bounce" : ""} />
           </button>
-          <button 
-            onClick={() => setViewMode(viewMode === 'list' ? 'chart' : 'list')}
-            className="p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 text-slate-600"
-          >
-            {viewMode === 'list' ? <PieChartIcon size={20} /> : <ListIcon size={20} />}
-          </button>
+          <div className="flex bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 p-1">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={cn("p-1.5 rounded-lg transition-colors", viewMode === 'list' ? "bg-slate-100 dark:bg-slate-800 text-primary" : "text-slate-400")}
+            >
+              <ListIcon size={18} />
+            </button>
+            <button 
+              onClick={() => setViewMode('chart')}
+              className={cn("p-1.5 rounded-lg transition-colors", viewMode === 'chart' ? "bg-slate-100 dark:bg-slate-800 text-primary" : "text-slate-400")}
+            >
+              <PieChartIcon size={18} />
+            </button>
+            <button 
+              onClick={() => setViewMode('budget')}
+              className={cn("p-1.5 rounded-lg transition-colors", viewMode === 'budget' ? "bg-slate-100 dark:bg-slate-800 text-primary" : "text-slate-400")}
+            >
+              <Target size={18} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -205,7 +252,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
                 ))
               )}
             </motion.div>
-          ) : (
+          ) : viewMode === 'chart' ? (
             <motion.div 
               key="chart"
               initial={{ opacity: 0 }}
@@ -247,6 +294,93 @@ export default function TrackerView({ lang }: { lang: Language }) {
               ) : (
                 <div className="py-12 text-center text-slate-400 text-sm">{t.no_data}</div>
               )}
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="budget"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-6"
+            >
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-bold">{lang === 'bn' ? 'মাসিক বাজেট' : 'Monthly Budget'}</h3>
+                  <button 
+                    onClick={() => { setBudgetAmount(budget?.amount.toString() || ''); setShowBudgetForm(true); }}
+                    className="text-xs font-bold text-primary"
+                  >
+                    {budget ? t.edit : t.set_budget}
+                  </button>
+                </div>
+
+                {!budget ? (
+                  <div className="py-8 text-center text-slate-400 text-sm border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                    {lang === 'bn' ? 'বাজেট সেট করা নেই' : 'No budget set'}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1">{t.budget}</p>
+                        <p className="text-2xl font-bold">৳{budget.amount.toLocaleString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-400 mb-1">{lang === 'bn' ? 'ব্যয় হয়েছে' : 'Spent'}</p>
+                        <p className={cn("text-lg font-bold", isOverBudget ? "text-red-600" : "text-slate-900 dark:text-white")}>
+                          ৳{stats.currentMonthExpense.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(budgetProgress, 100)}%` }}
+                          className={cn(
+                            "h-full rounded-full transition-colors",
+                            budgetProgress > 90 ? "bg-red-500" : budgetProgress > 70 ? "bg-amber-500" : "bg-primary"
+                          )}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] font-bold">
+                        <span className={cn(isOverBudget ? "text-red-600" : "text-slate-400")}>
+                          {budgetProgress.toFixed(1)}% {lang === 'bn' ? 'ব্যবহৃত' : 'Used'}
+                        </span>
+                        <span className="text-slate-400">
+                          {lang === 'bn' ? 'অবশিষ্ট:' : 'Remaining:'} ৳{Math.max(0, budget.amount - stats.currentMonthExpense).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isOverBudget && (
+                      <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/30 flex items-center gap-2 text-red-600 text-xs font-bold">
+                        <ArrowDownLeft size={16} />
+                        {lang === 'bn' ? 'সাবধান! আপনি বাজেট ছাড়িয়ে গেছেন।' : 'Warning! You have exceeded your budget.'}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Monthly Summary Bar Chart */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+                <h3 className="font-bold mb-4">{lang === 'bn' ? 'মাসিক সারসংক্ষেপ' : 'Monthly Summary'}</h3>
+                <div className="h-48 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[
+                      { name: t.income, value: stats.income, fill: '#10b981' },
+                      { name: t.expense, value: stats.expense, fill: '#f43f5e' }
+                    ]}>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                      <YAxis hide />
+                      <Tooltip cursor={{ fill: 'transparent' }} />
+                      <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -317,6 +451,48 @@ export default function TrackerView({ lang }: { lang: Language }) {
                 <button 
                   type="button"
                   onClick={() => setShowAddForm(false)}
+                  className="flex-1 p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold text-slate-500"
+                >
+                  {t.cancel}
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-2 p-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20"
+                >
+                  {t.save}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Budget Modal */}
+      {showBudgetForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-6" onClick={() => setShowBudgetForm(false)}>
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold mb-6">{t.set_budget}</h2>
+            <form onSubmit={handleBudgetSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">{t.amount}</label>
+                <input 
+                  type="number" 
+                  value={budgetAmount}
+                  onChange={e => setBudgetAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-none focus:ring-2 focus:ring-primary text-lg font-bold"
+                  required
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowBudgetForm(false)}
                   className="flex-1 p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold text-slate-500"
                 >
                   {t.cancel}
