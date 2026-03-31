@@ -1,7 +1,7 @@
 import { translations, type Language } from '../lib/utils';
-import { Globe, Moon, Sun, Trash2, Info, ChevronRight, Download } from 'lucide-react';
+import { Globe, Moon, Sun, Trash2, Info, ChevronRight, Download, Upload, Database } from 'lucide-react';
 import { db } from '../lib/db';
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function SettingsView({ 
@@ -21,7 +21,73 @@ export default function SettingsView({
 }) {
   const t = translations[lang];
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleBackup = async () => {
+    try {
+      const data: any = {};
+      const tables = ['transactions', 'notes', 'budgets', 'goals', 'projectBudgets'];
+      
+      for (const table of tables) {
+        data[table] = await (db as any)[table].toArray();
+      }
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rabbi_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Backup failed:', error);
+      alert(lang === 'bn' ? 'ব্যাকআপ ব্যর্থ হয়েছে' : 'Backup failed');
+    }
+  };
+
+  const handleRestore = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsRestoring(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = JSON.parse(e.target?.result as string);
+          
+          // Basic validation
+          if (!data.transactions && !data.notes && !data.projectBudgets) {
+            throw new Error('Invalid backup file');
+          }
+
+          // Clear and restore
+          const tables = ['transactions', 'notes', 'budgets', 'goals', 'projectBudgets'];
+          for (const table of tables) {
+            if (data[table]) {
+              await (db as any)[table].clear();
+              await (db as any)[table].bulkAdd(data[table]);
+            }
+          }
+
+          alert(lang === 'bn' ? 'ডেটা সফলভাবে রিস্টোর করা হয়েছে' : 'Data restored successfully');
+          window.location.reload();
+        } catch (error) {
+          console.error('Restore failed:', error);
+          alert(lang === 'bn' ? 'রিস্টোর ব্যর্থ হয়েছে: ফাইলটি সঠিক নয়' : 'Restore failed: Invalid file');
+        } finally {
+          setIsRestoring(false);
+        }
+      };
+      reader.readAsText(file);
+    } catch (error) {
+      console.error('File reading failed:', error);
+      setIsRestoring(false);
+    }
+  };
   const handleInstall = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
@@ -104,6 +170,54 @@ export default function SettingsView({
               </button>
             </>
           )}
+        </section>
+
+        <section className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800">
+          <button 
+            onClick={handleBackup}
+            className="w-full p-4 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-800 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
+                <Database size={20} />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-sm">{lang === 'bn' ? 'ব্যাকআপ ডেটা' : 'Backup Data'}</p>
+                <p className="text-xs text-slate-500">{lang === 'bn' ? 'সব ডেটা ডাউনলোড করুন' : 'Download all your data'}</p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slate-300" />
+          </button>
+
+          <div className="h-px bg-slate-100 dark:bg-slate-800 mx-4" />
+
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isRestoring}
+            className="w-full p-4 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-800 transition-colors disabled:opacity-50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600">
+                <Upload size={20} />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-sm">{lang === 'bn' ? 'রিস্টোর ডেটা' : 'Restore Data'}</p>
+                <p className="text-xs text-slate-500">{lang === 'bn' ? 'ব্যাকআপ ফাইল থেকে রিস্টোর করুন' : 'Restore from backup file'}</p>
+              </div>
+            </div>
+            {isRestoring ? (
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <ChevronRight size={18} className="text-slate-300" />
+            )}
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleRestore} 
+            accept=".json" 
+            className="hidden" 
+          />
         </section>
 
         <section className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type ProjectBudget } from '../lib/db';
 import { translations, type Language, cn } from '../lib/utils';
-import { Plus, Trash2, ChevronLeft, Calculator, PieChart, PlusCircle, X, Download } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, Calculator, PieChart, PlusCircle, X, Download, Edit3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { exportDataToPDF } from '../lib/pdfUtils';
 
@@ -45,6 +45,7 @@ export default function ProjectBudgetView({ lang, onBack }: { lang: Language, on
   const [newTitle, setNewTitle] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [sectors, setSectors] = useState<{ name: string; amount: number }[]>([]);
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
   const [sectorName, setSectorName] = useState('');
   const [sectorAmount, setSectorAmount] = useState('');
 
@@ -63,17 +64,36 @@ export default function ProjectBudgetView({ lang, onBack }: { lang: Language, on
   const handleSaveProject = async () => {
     if (!newTitle || !newTarget) return;
     
-    await db.projectBudgets.add({
+    const projectData = {
       title: newTitle,
       targetAmount: Number(newTarget),
       sectors: sectors,
-      createdAt: new Date()
-    });
+      createdAt: editingProjectId ? (projects?.find(p => p.id === editingProjectId)?.createdAt || new Date()) : new Date()
+    };
+
+    if (editingProjectId) {
+      await db.projectBudgets.update(editingProjectId, projectData);
+    } else {
+      await db.projectBudgets.add(projectData);
+    }
     
+    resetForm();
+    setShowAddModal(false);
+  };
+
+  const resetForm = () => {
     setNewTitle('');
     setNewTarget('');
     setSectors([]);
-    setShowAddModal(false);
+    setEditingProjectId(null);
+  };
+
+  const openEditModal = (project: ProjectBudget) => {
+    setNewTitle(project.title);
+    setNewTarget(project.targetAmount.toString());
+    setSectors(project.sectors);
+    setEditingProjectId(project.id || null);
+    setShowAddModal(true);
   };
 
   const deleteProject = async (id: number) => {
@@ -121,12 +141,20 @@ export default function ProjectBudgetView({ lang, onBack }: { lang: Language, on
                 <h3 className="font-bold text-lg">{project.title}</h3>
                 <p className="text-xs text-slate-500">{new Date(project.createdAt).toLocaleDateString()}</p>
               </div>
-              <button 
-                onClick={() => project.id && setShowDeleteConfirm(project.id)}
-                className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-              >
-                <Trash2 size={18} />
-              </button>
+              <div className="flex gap-1">
+                <button 
+                  onClick={() => openEditModal(project)}
+                  className="p-2 text-slate-400 hover:text-primary transition-colors"
+                >
+                  <Edit3 size={18} />
+                </button>
+                <button 
+                  onClick={() => project.id && setShowDeleteConfirm(project.id)}
+                  className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
@@ -208,9 +236,10 @@ export default function ProjectBudgetView({ lang, onBack }: { lang: Language, on
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Add Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[110] p-4" onClick={() => setShowAddModal(false)}>
+          <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[110] p-4" onClick={() => { setShowAddModal(false); resetForm(); }}>
             <motion.div 
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
@@ -219,8 +248,8 @@ export default function ProjectBudgetView({ lang, onBack }: { lang: Language, on
               onClick={e => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">{lang === 'bn' ? 'নতুন প্রজেক্ট' : 'New Project'}</h2>
-                <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+                <h2 className="text-xl font-bold">{editingProjectId ? (lang === 'bn' ? 'প্রজেক্ট এডিট করুন' : 'Edit Project') : (lang === 'bn' ? 'নতুন প্রজেক্ট' : 'New Project')}</h2>
+                <button onClick={() => { setShowAddModal(false); resetForm(); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
                   <X size={20} />
                 </button>
               </div>
