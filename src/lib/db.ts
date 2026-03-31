@@ -34,19 +34,29 @@ export interface Goal {
   createdAt: Date;
 }
 
+export interface ProjectBudget {
+  id?: number;
+  title: string;
+  targetAmount: number;
+  sectors: { name: string; amount: number }[];
+  createdAt: Date;
+}
+
 export class RabbiDatabase extends Dexie {
   transactions!: Table<Transaction>;
   notes!: Table<Note>;
   budgets!: Table<Budget>;
   goals!: Table<Goal>;
+  projectBudgets!: Table<ProjectBudget>;
 
   constructor() {
     super('RabbiDB');
-    this.version(1).stores({
+    this.version(2).stores({
       transactions: '++id, type, category, date',
       notes: '++id, title, createdAt, updatedAt',
       budgets: '++id, [month+category]',
-      goals: '++id, title'
+      goals: '++id, title',
+      projectBudgets: '++id, title'
     });
   }
 }

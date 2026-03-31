@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { translations, type Language, cn } from '../lib/utils';
-import { Wallet, Notebook, ArrowUpRight, ArrowDownLeft, Plus, Scale, Target } from 'lucide-react';
+import { Wallet, Notebook, ArrowUpRight, ArrowDownLeft, Plus, Scale, Target, Calculator } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function HomeView({ lang, setActiveTab }: { lang: Language, setActiveTab: (tab: any) => void }) {
@@ -113,6 +113,18 @@ export default function HomeView({ lang, setActiveTab }: { lang: Language, setAc
           <div className="text-left">
             <p className="text-xs text-slate-500 dark:text-slate-400">{t.target}</p>
             <p className="font-bold text-sm">{lang === 'bn' ? 'টার্গেট দেখুন' : 'View Target'}</p>
+          </div>
+        </button>
+        <button 
+          onClick={() => setActiveTab('calculator')}
+          className="p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center gap-3 col-span-2"
+        >
+          <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600">
+            <Calculator size={20} />
+          </div>
+          <div className="text-left">
+            <p className="text-xs text-slate-500 dark:text-slate-400">{lang === 'bn' ? 'খরচ ক্যালকুলেটর' : 'Expense Calculator'}</p>
+            <p className="font-bold text-sm">{lang === 'bn' ? 'প্রজেক্ট বাজেট তৈরি করুন' : 'Create Project Budget'}</p>
           </div>
         </button>
       </div>

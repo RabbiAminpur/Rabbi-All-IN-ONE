@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Wallet, Notebook, Settings, Plus, Scale, Target } from 'lucide-react';
+import { Home, Wallet, Notebook, Settings, Plus, Scale, Target, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from './lib/db';
 import { translations, type Language, cn } from './lib/utils';
@@ -11,9 +11,10 @@ import NotebookView from './components/NotebookView';
 import SettingsView from './components/SettingsView';
 import FinalAccountsView from './components/FinalAccountsView';
 import GoalsView from './components/GoalsView';
+import ProjectBudgetView from './components/ProjectBudgetView';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'tracker' | 'notes' | 'final' | 'goals' | 'settings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'tracker' | 'notes' | 'final' | 'goals' | 'settings' | 'calculator'>('home');
   const [lang, setLang] = useState<Language>('bn');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -62,6 +63,7 @@ export default function App() {
       case 'notes': return <NotebookView lang={lang} />;
       case 'final': return <FinalAccountsView lang={lang} />;
       case 'goals': return <GoalsView lang={lang} />;
+      case 'calculator': return <ProjectBudgetView lang={lang} onBack={() => setActiveTab('home')} />;
       case 'settings': return (
         <SettingsView 
           lang={lang} 
@@ -93,7 +95,7 @@ export default function App() {
       </main>
 
       {/* FAB */}
-      {activeTab !== 'settings' && (
+      {activeTab !== 'settings' && activeTab !== 'calculator' && (
         <button
           onClick={() => setShowAddModal(true)}
           className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-40"
@@ -182,6 +184,13 @@ export default function App() {
                 >
                   <Target className="text-emerald-600" />
                   <span className="font-medium">{t.target}</span>
+                </button>
+                <button 
+                  onClick={() => { setActiveTab('calculator'); setShowAddModal(false); }}
+                  className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-2xl flex flex-col items-center gap-2 border border-purple-100 dark:border-purple-800 col-span-2"
+                >
+                  <Calculator className="text-purple-600" />
+                  <span className="font-medium">{lang === 'bn' ? 'খরচ ক্যালকুলেটর' : 'Expense Calculator'}</span>
                 </button>
               </div>
            </motion.div>

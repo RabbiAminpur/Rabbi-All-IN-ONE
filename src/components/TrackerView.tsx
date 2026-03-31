@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Transaction, type Budget } from '../lib/db';
 import { translations, type Language, cn } from '../lib/utils';
-import { exportToPDF } from '../lib/pdfUtils';
+import { exportToPDF, exportDataToPDF } from '../lib/pdfUtils';
 import { 
   Plus, 
   Minus, 
@@ -220,6 +220,37 @@ export default function TrackerView({ lang }: { lang: Language }) {
     setIsExporting(false);
   };
 
+  const handleBudgetExport = () => {
+    if (!budgets || budgets.length === 0) return;
+
+    const title = lang === 'bn' ? `বাজেট রিপোর্ট - ${currentMonth}` : `Budget Report - ${currentMonth}`;
+    const columns = [
+      lang === 'bn' ? 'ক্যাটাগরি' : 'Category',
+      lang === 'bn' ? 'বাজেট' : 'Budget',
+      lang === 'bn' ? 'ব্যয়' : 'Spent',
+      lang === 'bn' ? 'অবশিষ্ট' : 'Remaining',
+      lang === 'bn' ? 'অবস্থা' : 'Status'
+    ];
+
+    const data = budgets.map(b => {
+      const spent = transactions
+        ?.filter(t => t.type === 'expense' && t.category === b.category && new Date(t.date).toISOString().slice(0, 7) === currentMonth)
+        .reduce((acc, curr) => acc + curr.amount, 0) || 0;
+      const remaining = b.amount - spent;
+      const progress = (spent / b.amount) * 100;
+
+      return [
+        b.category,
+        `৳ ${b.amount.toLocaleString()}`,
+        `৳ ${spent.toLocaleString()}`,
+        `৳ ${remaining.toLocaleString()}`,
+        `${progress.toFixed(1)}%`
+      ];
+    });
+
+    exportDataToPDF(title, columns, data, `budget_report_${currentMonth}`);
+  };
+
   const budgetSummary = useMemo(() => {
     if (!budgets) return { total: 0, spent: 0, progress: 0, isOver: false };
     const total = budgets.reduce((acc, curr) => acc + curr.amount, 0);
@@ -242,7 +273,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t.tracker}</h1>
         <div className="flex gap-2">
           <button 
-            onClick={handleExport}
+            onClick={viewMode === 'budget' ? handleBudgetExport : handleExport}
             disabled={isExporting}
             className={cn(
               "p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 text-slate-600 transition-opacity",
