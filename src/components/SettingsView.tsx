@@ -86,10 +86,15 @@ export default function SettingsView({
         </section>
 
         <section className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 text-center">
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
-            <Info size={32} />
+          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 overflow-hidden">
+            <img 
+              src="https://i.ibb.co/6R6jV8Sd/20260331-155720.jpg" 
+              alt="Rabbi Logo" 
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
           </div>
-          <h3 className="font-bold text-lg mb-1">Prottoy (প্রত্যয়)</h3>
+          <h3 className="font-bold text-lg mb-1">Rabbi</h3>
           <p className="text-slate-500 text-xs mb-4">Version 1.0.0</p>
           <p className="text-slate-400 text-[10px] leading-relaxed">
             {lang === 'bn' 

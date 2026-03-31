@@ -154,7 +154,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
     exportContainer.style.fontFamily = 'sans-serif';
 
     const title = document.createElement('h1');
-    title.innerText = lang === 'bn' ? 'প্রতয় - আর্থিক প্রতিবেদন' : 'Prottoy - Financial Report';
+    title.innerText = lang === 'bn' ? 'রাব্বি - আর্থিক প্রতিবেদন' : 'Rabbi - Financial Report';
     title.style.textAlign = 'center';
     title.style.marginBottom = '20px';
     exportContainer.appendChild(title);
@@ -215,7 +215,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
     exportContainer.appendChild(table);
 
     document.body.appendChild(exportContainer);
-    await exportToPDF('pdf-export-container', `prottoy_report_${currentMonth}`);
+    await exportToPDF('pdf-export-container', `rabbi_report_${currentMonth}`);
     document.body.removeChild(exportContainer);
     setIsExporting(false);
   };

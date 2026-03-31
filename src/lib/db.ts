@@ -29,18 +29,19 @@ export interface Goal {
   id?: number;
   title: string;
   targetAmount: number;
-  years: number;
+  totalMonths: number;
+  savedAmount: number;
   createdAt: Date;
 }
 
-export class ProttoyDatabase extends Dexie {
+export class RabbiDatabase extends Dexie {
   transactions!: Table<Transaction>;
   notes!: Table<Note>;
   budgets!: Table<Budget>;
   goals!: Table<Goal>;
 
   constructor() {
-    super('ProttoyDB');
+    super('RabbiDB');
     this.version(1).stores({
       transactions: '++id, type, category, date',
       notes: '++id, title, createdAt, updatedAt',
@@ -50,4 +51,4 @@ export class ProttoyDatabase extends Dexie {
   }
 }
 
-export const db = new ProttoyDatabase();
+export const db = new RabbiDatabase();

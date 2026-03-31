@@ -28,8 +28,13 @@ export default function HomeView({ lang, setActiveTab }: { lang: Language, setAc
             {new Date().toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-          P
+        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden border-2 border-primary/20 shadow-sm">
+          <img 
+            src="https://i.ibb.co/6R6jV8Sd/20260331-155720.jpg" 
+            alt="Rabbi Logo" 
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
         </div>
       </header>
 

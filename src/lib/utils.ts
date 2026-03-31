@@ -57,10 +57,16 @@ export const translations = {
     add_target: 'টার্গেট যোগ করুন',
     target_amount: 'টার্গেট পরিমাণ',
     years: 'বছর',
+    months: 'মাস',
     daily_save: 'দৈনিক সঞ্চয়',
     monthly_save: 'মাসিক সঞ্চয়',
     yearly_save: 'বার্ষিক সঞ্চয়',
-    save_needed: 'সঞ্চয় প্রয়োজন'
+    save_needed: 'সঞ্চয় প্রয়োজন',
+    remaining_amount: 'বাকি পরিমাণ',
+    remaining_time: 'বাকি সময়',
+    add_savings: 'সঞ্চয় যোগ করুন',
+    total_saved: 'মোট সঞ্চয়',
+    progress: 'অগ্রগতি'
   },
   en: {
     home: 'Home',
@@ -113,10 +119,16 @@ export const translations = {
     add_target: 'Add Target',
     target_amount: 'Target Amount',
     years: 'Years',
+    months: 'Months',
     daily_save: 'Daily Saving',
     monthly_save: 'Monthly Saving',
     yearly_save: 'Yearly Saving',
-    save_needed: 'Saving Needed'
+    save_needed: 'Saving Needed',
+    remaining_amount: 'Remaining Amount',
+    remaining_time: 'Remaining Time',
+    add_savings: 'Add Savings',
+    total_saved: 'Total Saved',
+    progress: 'Progress'
   }
 }
 ;
