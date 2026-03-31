@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { translations, type Language, cn } from '../lib/utils';
-import { Wallet, Notebook, ArrowUpRight, ArrowDownLeft, Plus } from 'lucide-react';
+import { Wallet, Notebook, ArrowUpRight, ArrowDownLeft, Plus, Scale } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function HomeView({ lang, setActiveTab }: { lang: Language, setActiveTab: (tab: any) => void }) {
@@ -61,30 +61,33 @@ export default function HomeView({ lang, setActiveTab }: { lang: Language, setAc
       </motion.div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         <button 
           onClick={() => setActiveTab('tracker')}
-          className="p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center gap-3"
+          className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2"
         >
           <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
             <Wallet size={20} />
           </div>
-          <div className="text-left">
-            <p className="text-xs text-slate-500 dark:text-slate-400">{t.tracker}</p>
-            <p className="font-bold text-sm">{lang === 'bn' ? 'হিসাব দেখুন' : 'View Tracker'}</p>
-          </div>
+          <p className="font-bold text-[10px] text-center">{t.tracker}</p>
         </button>
         <button 
           onClick={() => setActiveTab('notes')}
-          className="p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center gap-3"
+          className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2"
         >
           <div className="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center text-pink-600">
             <Notebook size={20} />
           </div>
-          <div className="text-left">
-            <p className="text-xs text-slate-500 dark:text-slate-400">{t.notes}</p>
-            <p className="font-bold text-sm">{notesCount || 0} {lang === 'bn' ? 'টি নোট' : 'Notes'}</p>
+          <p className="font-bold text-[10px] text-center">{t.notes}</p>
+        </button>
+        <button 
+          onClick={() => setActiveTab('final')}
+          className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-2"
+        >
+          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center text-amber-600">
+            <Scale size={20} />
           </div>
+          <p className="font-bold text-[10px] text-center">{t.final_accounts}</p>
         </button>
       </div>
 

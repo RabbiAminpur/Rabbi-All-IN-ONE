@@ -43,7 +43,16 @@ export const translations = {
     add_note: 'নতুন নোট',
     image_upload: 'ছবি আপলোড',
     recent_transactions: 'সাম্প্রতিক লেনদেন',
-    summary: 'সারসংক্ষেপ'
+    summary: 'সারসংক্ষেপ',
+    final_accounts: 'চূড়ান্ত হিসাব',
+    journal: 'জাবেদা',
+    ledger: 'খতিয়ান',
+    trial_balance: 'রেওয়ামিল',
+    debit: 'ডেবিট',
+    credit: 'ক্রেডিট',
+    particulars: 'বিবরণ',
+    cash_account: 'নগদ হিসাব',
+    total: 'মোট'
   },
   en: {
     home: 'Home',
@@ -82,8 +91,18 @@ export const translations = {
     add_note: 'Add Note',
     image_upload: 'Upload Image',
     recent_transactions: 'Recent Transactions',
-    summary: 'Summary'
+    summary: 'Summary',
+    final_accounts: 'Final Accounts',
+    journal: 'Journal',
+    ledger: 'Ledger',
+    trial_balance: 'Trial Balance',
+    debit: 'Debit',
+    credit: 'Credit',
+    particulars: 'Particulars',
+    cash_account: 'Cash Account',
+    total: 'Total'
   }
-};
+}
+;
 
 export type Language = 'bn' | 'en';
