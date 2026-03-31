@@ -52,7 +52,15 @@ export const translations = {
     credit: 'ক্রেডিট',
     particulars: 'বিবরণ',
     cash_account: 'নগদ হিসাব',
-    total: 'মোট'
+    total: 'মোট',
+    target: 'টার্গেট',
+    add_target: 'টার্গেট যোগ করুন',
+    target_amount: 'টার্গেট পরিমাণ',
+    years: 'বছর',
+    daily_save: 'দৈনিক সঞ্চয়',
+    monthly_save: 'মাসিক সঞ্চয়',
+    yearly_save: 'বার্ষিক সঞ্চয়',
+    save_needed: 'সঞ্চয় প্রয়োজন'
   },
   en: {
     home: 'Home',
@@ -100,7 +108,15 @@ export const translations = {
     credit: 'Credit',
     particulars: 'Particulars',
     cash_account: 'Cash Account',
-    total: 'Total'
+    total: 'Total',
+    target: 'Target',
+    add_target: 'Add Target',
+    target_amount: 'Target Amount',
+    years: 'Years',
+    daily_save: 'Daily Saving',
+    monthly_save: 'Monthly Saving',
+    yearly_save: 'Yearly Saving',
+    save_needed: 'Saving Needed'
   }
 }
 ;

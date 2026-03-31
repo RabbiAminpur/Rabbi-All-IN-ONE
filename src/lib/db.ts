@@ -25,17 +25,27 @@ export interface Budget {
   amount: number;
 }
 
+export interface Goal {
+  id?: number;
+  title: string;
+  targetAmount: number;
+  years: number;
+  createdAt: Date;
+}
+
 export class ProttoyDatabase extends Dexie {
   transactions!: Table<Transaction>;
   notes!: Table<Note>;
   budgets!: Table<Budget>;
+  goals!: Table<Goal>;
 
   constructor() {
     super('ProttoyDB');
     this.version(1).stores({
       transactions: '++id, type, category, date',
       notes: '++id, title, createdAt, updatedAt',
-      budgets: '++id, [month+category]'
+      budgets: '++id, [month+category]',
+      goals: '++id, title'
     });
   }
 }

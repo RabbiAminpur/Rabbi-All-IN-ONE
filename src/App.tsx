@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Wallet, Notebook, Settings, Plus, Scale } from 'lucide-react';
+import { Home, Wallet, Notebook, Settings, Plus, Scale, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from './lib/db';
 import { translations, type Language, cn } from './lib/utils';
@@ -10,9 +10,10 @@ import TrackerView from './components/TrackerView';
 import NotebookView from './components/NotebookView';
 import SettingsView from './components/SettingsView';
 import FinalAccountsView from './components/FinalAccountsView';
+import GoalsView from './components/GoalsView';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'tracker' | 'notes' | 'final' | 'settings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'tracker' | 'notes' | 'final' | 'goals' | 'settings'>('home');
   const [lang, setLang] = useState<Language>('bn');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -54,6 +55,7 @@ export default function App() {
       case 'tracker': return <TrackerView lang={lang} />;
       case 'notes': return <NotebookView lang={lang} />;
       case 'final': return <FinalAccountsView lang={lang} />;
+      case 'goals': return <GoalsView lang={lang} />;
       case 'settings': return <SettingsView lang={lang} toggleLang={toggleLang} toggleTheme={toggleTheme} isDarkMode={isDarkMode} />;
       default: return <HomeView lang={lang} setActiveTab={setActiveTab} />;
     }
@@ -113,6 +115,12 @@ export default function App() {
           label={t.final_accounts} 
         />
         <NavButton 
+          active={activeTab === 'goals'} 
+          onClick={() => setActiveTab('goals')} 
+          icon={<Target size={24} />} 
+          label={t.target} 
+        />
+        <NavButton 
           active={activeTab === 'settings'} 
           onClick={() => setActiveTab('settings')} 
           icon={<Settings size={24} />} 
@@ -152,6 +160,13 @@ export default function App() {
                 >
                   <Scale className="text-amber-600" />
                   <span className="font-medium">{t.final_accounts}</span>
+                </button>
+                <button 
+                  onClick={() => { setActiveTab('goals'); setShowAddModal(false); }}
+                  className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex flex-col items-center gap-2 border border-emerald-100 dark:border-emerald-800"
+                >
+                  <Target className="text-emerald-600" />
+                  <span className="font-medium">{t.target}</span>
                 </button>
               </div>
            </motion.div>
