@@ -11,6 +11,7 @@ export default function GoalsView({ lang }: { lang: Language }) {
   const [showSaveModal, setShowSaveModal] = useState<{ id: number; title: string } | null>(null);
   const [saveAmount, setSaveAmount] = useState('');
   const [newGoal, setNewGoal] = useState({ title: '', targetAmount: '', years: '1', months: '0' });
+  const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
 
   const goals = useLiveQuery(() => db.goals.toArray());
@@ -22,15 +23,24 @@ export default function GoalsView({ lang }: { lang: Language }) {
     const totalMonths = (parseInt(newGoal.years) * 12) + parseInt(newGoal.months);
     if (totalMonths <= 0) return;
 
-    await db.goals.add({
-      title: newGoal.title,
-      targetAmount: parseFloat(newGoal.targetAmount),
-      totalMonths: totalMonths,
-      savedAmount: 0,
-      createdAt: new Date()
-    });
+    if (editingGoalId) {
+      await db.goals.update(editingGoalId, {
+        title: newGoal.title,
+        targetAmount: parseFloat(newGoal.targetAmount),
+        totalMonths: totalMonths
+      });
+    } else {
+      await db.goals.add({
+        title: newGoal.title,
+        targetAmount: parseFloat(newGoal.targetAmount),
+        totalMonths: totalMonths,
+        savedAmount: 0,
+        createdAt: new Date()
+      });
+    }
 
     setNewGoal({ title: '', targetAmount: '', years: '1', months: '0' });
+    setEditingGoalId(null);
     setShowAddModal(false);
   };
 
@@ -125,6 +135,21 @@ export default function GoalsView({ lang }: { lang: Language }) {
                     </div>
                   </div>
                   <div className="flex gap-1">
+                    <button 
+                      onClick={() => {
+                        setEditingGoalId(goal.id!);
+                        setNewGoal({
+                          title: goal.title,
+                          targetAmount: goal.targetAmount.toString(),
+                          years: Math.floor(goal.totalMonths / 12).toString(),
+                          months: (goal.totalMonths % 12).toString()
+                        });
+                        setShowAddModal(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-primary rounded-xl transition-colors"
+                    >
+                      <TrendingUp size={18} className="rotate-45" />
+                    </button>
                     <button 
                       onClick={() => setShowSaveModal({ id: goal.id!, title: goal.title })}
                       className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors"
@@ -225,7 +250,7 @@ export default function GoalsView({ lang }: { lang: Language }) {
       {/* Add Goal Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[100] p-4" onClick={() => setShowAddModal(false)}>
+          <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[100] p-4" onClick={() => { setShowAddModal(false); setEditingGoalId(null); }}>
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
@@ -234,7 +259,7 @@ export default function GoalsView({ lang }: { lang: Language }) {
               onClick={e => e.stopPropagation()}
             >
               <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-6" />
-              <h2 className="text-xl font-bold mb-6 text-center">{t.add_target}</h2>
+              <h2 className="text-xl font-bold mb-6 text-center">{editingGoalId ? t.edit : t.add_target}</h2>
               
               <form onSubmit={handleAddGoal} className="space-y-4">
                 <div className="space-y-1">
@@ -291,7 +316,7 @@ export default function GoalsView({ lang }: { lang: Language }) {
                 <div className="flex gap-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => { setShowAddModal(false); setEditingGoalId(null); }}
                     className="flex-1 p-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-bold"
                   >
                     {t.cancel}

@@ -39,6 +39,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
   const [budgetAmount, setBudgetAmount] = useState('');
   const [budgetCategory, setBudgetCategory] = useState('');
   const [editingBudgetId, setEditingBudgetId] = useState<number | null>(null);
+  const [editingTransactionId, setEditingTransactionId] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ type: 'transaction' | 'budget', id: number } | null>(null);
 
   // Form State
@@ -90,17 +91,28 @@ export default function TrackerView({ lang }: { lang: Language }) {
     e.preventDefault();
     if (!amount || !category) return;
 
-    await db.transactions.add({
-      type: formType,
-      amount: parseFloat(amount),
-      category,
-      note,
-      date: new Date(date)
-    });
+    if (editingTransactionId) {
+      await db.transactions.update(editingTransactionId, {
+        type: formType,
+        amount: parseFloat(amount),
+        category,
+        note,
+        date: new Date(date)
+      });
+    } else {
+      await db.transactions.add({
+        type: formType,
+        amount: parseFloat(amount),
+        category,
+        note,
+        date: new Date(date)
+      });
+    }
 
     setAmount('');
     setCategory('');
     setNote('');
+    setEditingTransactionId(null);
     setShowAddForm(false);
   };
 
@@ -373,12 +385,29 @@ export default function TrackerView({ lang }: { lang: Language }) {
                       <p className={cn("font-bold", tx.type === 'income' ? "text-green-600" : "text-red-600")}>
                         {tx.type === 'income' ? '+' : '-'}৳{tx.amount}
                       </p>
-                      <button 
-                        onClick={() => tx.id && setShowDeleteConfirm({ type: 'transaction', id: tx.id })}
-                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => {
+                            if (!tx.id) return;
+                            setEditingTransactionId(tx.id);
+                            setAmount(tx.amount.toString());
+                            setCategory(tx.category);
+                            setNote(tx.note || '');
+                            setFormType(tx.type);
+                            setDate(new Date(tx.date).toISOString().split('T')[0]);
+                            setShowAddForm(true);
+                          }}
+                          className="p-2 text-slate-300 hover:text-primary transition-colors"
+                        >
+                          <Plus size={16} className="rotate-45" />
+                        </button>
+                        <button 
+                          onClick={() => tx.id && setShowDeleteConfirm({ type: 'transaction', id: tx.id })}
+                          className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -610,7 +639,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
 
       {/* Add Transaction Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-6" onClick={() => setShowAddForm(false)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-6" onClick={() => { setShowAddForm(false); setEditingTransactionId(null); }}>
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -618,7 +647,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">{formType === 'income' ? t.add_income : t.add_expense}</h2>
+              <h2 className="text-xl font-bold">{editingTransactionId ? t.edit : (formType === 'income' ? t.add_income : t.add_expense)}</h2>
               <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
                 <button 
                   onClick={() => setFormType('income')}
@@ -672,7 +701,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
               <div className="flex gap-3 pt-4">
                 <button 
                   type="button"
-                  onClick={() => setShowAddForm(false)}
+                  onClick={() => { setShowAddForm(false); setEditingTransactionId(null); }}
                   className="flex-1 p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold text-slate-500"
                 >
                   {t.cancel}

@@ -18,9 +18,33 @@ export default function App() {
   const [lang, setLang] = useState<Language>('bn');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const t = translations[lang];
+
+  useEffect(() => {
+    // Handle back button
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      if (activeTab === 'home') {
+        setShowExitModal(true);
+        // Push state back to prevent actual browser back
+        window.history.pushState({ tab: 'home' }, '');
+      } else {
+        setActiveTab('home');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    // Initial state push
+    if (window.history.state?.tab !== activeTab) {
+      window.history.pushState({ tab: activeTab }, '');
+    }
+
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeTab]);
 
   useEffect(() => {
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -144,6 +168,46 @@ export default function App() {
           label={t.settings} 
         />
       </nav>
+
+      {/* Exit Confirmation Modal */}
+      <AnimatePresence>
+        {showExitModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-6">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                <Home size={32} />
+              </div>
+              <h3 className="text-lg font-bold mb-2">{lang === 'bn' ? 'অ্যাপ থেকে বের হতে চান?' : 'Quit the app?'}</h3>
+              <p className="text-slate-500 text-sm mb-6">
+                {lang === 'bn' ? 'আপনি কি নিশ্চিত যে আপনি অ্যাপটি বন্ধ করতে চান?' : 'Are you sure you want to exit the application?'}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setShowExitModal(false)}
+                  className="py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-sm text-slate-900 dark:text-white"
+                >
+                  {lang === 'bn' ? 'না' : 'No'}
+                </button>
+                <button 
+                  onClick={() => {
+                    // In a PWA/Browser, we can't really "close" the tab easily
+                    // but we can redirect or just hide the app content
+                    window.location.href = "about:blank";
+                  }}
+                  className="py-3 bg-primary text-white rounded-xl font-bold text-sm"
+                >
+                  {lang === 'bn' ? 'হ্যাঁ' : 'Yes'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Global Add Modal Placeholder */}
       {showAddModal && (

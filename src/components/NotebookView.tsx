@@ -164,9 +164,20 @@ export default function NotebookView({ lang }: { lang: Language }) {
                   )}
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{note.title || (lang === 'bn' ? 'শিরোনামহীন' : 'Untitled')}</h3>
                   <p className="text-[10px] text-slate-400 line-clamp-3 leading-relaxed">{note.content}</p>
-                  <div className="flex items-center gap-1 text-[8px] text-slate-300 pt-1">
-                    <Calendar size={10} />
-                    {new Date(note.updatedAt).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-1 text-[8px] text-slate-300">
+                      <Calendar size={10} />
+                      {new Date(note.updatedAt).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')}
+                    </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditor(note);
+                      }}
+                      className="p-1 text-slate-300 hover:text-primary transition-colors"
+                    >
+                      <Edit3 size={12} />
+                    </button>
                   </div>
                 </motion.div>
               ))
