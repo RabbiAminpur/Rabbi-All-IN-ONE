@@ -1,0 +1,21 @@
+{
+  "name": "Prottoy",
+  "short_name": "Prottoy",
+  "description": "Bangla Personal Productivity App",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/prottoy/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/prottoy/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
