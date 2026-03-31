@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Transaction, type Budget } from '../lib/db';
 import { translations, type Language, cn } from '../lib/utils';
@@ -37,6 +37,8 @@ export default function TrackerView({ lang }: { lang: Language }) {
   const [formType, setFormType] = useState<'income' | 'expense'>('expense');
   const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [budgetAmount, setBudgetAmount] = useState('');
+  const [budgetCategory, setBudgetCategory] = useState('');
+  const [editingBudgetId, setEditingBudgetId] = useState<number | null>(null);
 
   // Form State
   const [amount, setAmount] = useState('');
@@ -50,8 +52,8 @@ export default function TrackerView({ lang }: { lang: Language }) {
     db.transactions.orderBy('date').reverse().toArray()
   );
 
-  const budget = useLiveQuery(() => 
-    db.budgets.where('month').equals(currentMonth).first()
+  const budgets = useLiveQuery(() => 
+    db.budgets.where('month').equals(currentMonth).toArray()
   );
 
   const filteredTransactions = useMemo(() => {
@@ -103,18 +105,30 @@ export default function TrackerView({ lang }: { lang: Language }) {
 
   const handleBudgetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!budgetAmount) return;
+    if (!budgetAmount || !budgetCategory) return;
 
-    if (budget?.id) {
-      await db.budgets.update(budget.id, { amount: parseFloat(budgetAmount) });
+    if (editingBudgetId) {
+      await db.budgets.update(editingBudgetId, { 
+        amount: parseFloat(budgetAmount),
+        category: budgetCategory
+      });
     } else {
       await db.budgets.add({
         month: currentMonth,
+        category: budgetCategory,
         amount: parseFloat(budgetAmount)
       });
     }
     setShowBudgetForm(false);
     setBudgetAmount('');
+    setBudgetCategory('');
+    setEditingBudgetId(null);
+  };
+
+  const handleDeleteBudget = async (id: number) => {
+    if (confirm(lang === 'bn' ? 'আপনি কি এই বাজেট মুছে ফেলতে চান?' : 'Are you sure you want to delete this budget?')) {
+      await db.budgets.delete(id);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -127,12 +141,100 @@ export default function TrackerView({ lang }: { lang: Language }) {
 
   const handleExport = async () => {
     setIsExporting(true);
-    await exportToPDF('tracker-content', 'prottoy-report');
+    // Create a temporary container for A4 export
+    const exportContainer = document.createElement('div');
+    exportContainer.id = 'pdf-export-container';
+    exportContainer.style.position = 'fixed';
+    exportContainer.style.left = '-9999px';
+    exportContainer.style.top = '0';
+    exportContainer.style.width = '210mm'; // A4 width
+    exportContainer.style.padding = '20mm';
+    exportContainer.style.backgroundColor = 'white';
+    exportContainer.style.color = 'black';
+    exportContainer.style.fontFamily = 'sans-serif';
+
+    const title = document.createElement('h1');
+    title.innerText = lang === 'bn' ? 'প্রতয় - আর্থিক প্রতিবেদন' : 'Prottoy - Financial Report';
+    title.style.textAlign = 'center';
+    title.style.marginBottom = '20px';
+    exportContainer.appendChild(title);
+
+    const dateRange = document.createElement('p');
+    dateRange.innerText = `${lang === 'bn' ? 'মাস:' : 'Month:'} ${currentMonth}`;
+    dateRange.style.marginBottom = '20px';
+    exportContainer.appendChild(dateRange);
+
+    const summary = document.createElement('div');
+    summary.innerHTML = `
+      <div style="display: flex; justify-content: space-between; margin-bottom: 30px; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        <div>
+          <p style="color: #666; font-size: 12px; margin: 0;">${t.total_income}</p>
+          <p style="font-size: 24px; font-weight: bold; color: #10b981; margin: 5px 0;">৳${stats.income.toLocaleString()}</p>
+        </div>
+        <div>
+          <p style="color: #666; font-size: 12px; margin: 0;">${t.total_expense}</p>
+          <p style="font-size: 24px; font-weight: bold; color: #f43f5e; margin: 5px 0;">৳${stats.expense.toLocaleString()}</p>
+        </div>
+        <div>
+          <p style="color: #666; font-size: 12px; margin: 0;">${t.balance}</p>
+          <p style="font-size: 24px; font-weight: bold; color: #4f46e5; margin: 5px 0;">৳${stats.balance.toLocaleString()}</p>
+        </div>
+      </div>
+    `;
+    exportContainer.appendChild(summary);
+
+    const tableTitle = document.createElement('h2');
+    tableTitle.innerText = lang === 'bn' ? 'লেনদেনের তালিকা' : 'Transaction List';
+    tableTitle.style.fontSize = '18px';
+    tableTitle.style.marginBottom = '10px';
+    exportContainer.appendChild(tableTitle);
+
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.innerHTML = `
+      <thead>
+        <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+          <th style="padding: 12px; text-align: left;">${t.date}</th>
+          <th style="padding: 12px; text-align: left;">${t.category}</th>
+          <th style="padding: 12px; text-align: left;">${lang === 'bn' ? 'ধরণ' : 'Type'}</th>
+          <th style="padding: 12px; text-align: right;">${t.amount}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filteredTransactions.map(tx => `
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 10px;">${new Date(tx.date).toLocaleDateString()}</td>
+            <td style="padding: 10px;">${tx.category}</td>
+            <td style="padding: 10px; color: ${tx.type === 'income' ? '#10b981' : '#f43f5e'}">${t[tx.type]}</td>
+            <td style="padding: 10px; text-align: right; font-weight: bold;">৳${tx.amount.toLocaleString()}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    exportContainer.appendChild(table);
+
+    document.body.appendChild(exportContainer);
+    await exportToPDF('pdf-export-container', `prottoy_report_${currentMonth}`);
+    document.body.removeChild(exportContainer);
     setIsExporting(false);
   };
 
-  const budgetProgress = budget ? (stats.currentMonthExpense / budget.amount) * 100 : 0;
-  const isOverBudget = budgetProgress > 100;
+  const budgetSummary = useMemo(() => {
+    if (!budgets) return { total: 0, spent: 0, progress: 0, isOver: false };
+    const total = budgets.reduce((acc, curr) => acc + curr.amount, 0);
+    const spent = budgets.reduce((acc, curr) => {
+      const categorySpent = transactions
+        ?.filter(t => t.type === 'expense' && t.category === curr.category && new Date(t.date).toISOString().slice(0, 7) === currentMonth)
+        .reduce((a, c) => a + c.amount, 0) || 0;
+      return acc + categorySpent;
+    }, 0);
+    const progress = total > 0 ? (spent / total) * 100 : 0;
+    return { total, spent, progress, isOver: progress > 100 };
+  }, [budgets, transactions, currentMonth]);
+
+  const budgetProgress = budgetSummary.progress;
+  const isOverBudget = budgetSummary.isOver;
 
   return (
     <div className="space-y-6">
@@ -303,63 +405,114 @@ export default function TrackerView({ lang }: { lang: Language }) {
               exit={{ opacity: 0 }}
               className="space-y-6"
             >
+              {/* Total Budget Summary Card */}
+              <div className="bg-primary/5 dark:bg-primary/10 p-6 rounded-3xl border border-primary/10 dark:border-primary/20">
+                <div className="flex justify-between items-end mb-4">
+                  <div>
+                    <p className="text-xs text-primary font-bold uppercase tracking-wider mb-1">{lang === 'bn' ? 'মোট বাজেট' : 'Total Budget'}</p>
+                    <p className="text-3xl font-bold text-primary">৳{budgetSummary.total.toLocaleString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400 mb-1">{lang === 'bn' ? 'মোট ব্যয়' : 'Total Spent'}</p>
+                    <p className={cn("text-xl font-bold", isOverBudget ? "text-red-600" : "text-slate-900 dark:text-white")}>
+                      ৳{budgetSummary.spent.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(budgetProgress, 100)}%` }}
+                      className={cn(
+                        "h-full rounded-full transition-colors",
+                        budgetProgress > 90 ? "bg-red-500" : budgetProgress > 70 ? "bg-amber-500" : "bg-primary"
+                      )}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] font-bold">
+                    <span className={cn(isOverBudget ? "text-red-600" : "text-slate-400")}>
+                      {budgetProgress.toFixed(1)}% {lang === 'bn' ? 'ব্যবহৃত' : 'Used'}
+                    </span>
+                    <span className="text-slate-400">
+                      {lang === 'bn' ? 'অবশিষ্ট:' : 'Remaining:'} ৳{Math.max(0, budgetSummary.total - budgetSummary.spent).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-bold">{lang === 'bn' ? 'মাসিক বাজেট' : 'Monthly Budget'}</h3>
+                  <h3 className="font-bold">{lang === 'bn' ? 'ক্যাটাগরি ভিত্তিক বাজেট' : 'Category Budgets'}</h3>
                   <button 
-                    onClick={() => { setBudgetAmount(budget?.amount.toString() || ''); setShowBudgetForm(true); }}
-                    className="text-xs font-bold text-primary"
+                    onClick={() => { 
+                      setBudgetAmount(''); 
+                      setBudgetCategory(''); 
+                      setEditingBudgetId(null);
+                      setShowBudgetForm(true); 
+                    }}
+                    className="text-xs font-bold text-primary flex items-center gap-1"
                   >
-                    {budget ? t.edit : t.set_budget}
+                    <Plus size={14} /> {t.set_budget}
                   </button>
                 </div>
 
-                {!budget ? (
+                {!budgets || budgets.length === 0 ? (
                   <div className="py-8 text-center text-slate-400 text-sm border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                    {lang === 'bn' ? 'বাজেট সেট করা নেই' : 'No budget set'}
+                    {lang === 'bn' ? 'বাজেট সেট করা নেই' : 'No budgets set'}
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <p className="text-xs text-slate-400 mb-1">{t.budget}</p>
-                        <p className="text-2xl font-bold">৳{budget.amount.toLocaleString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-slate-400 mb-1">{lang === 'bn' ? 'ব্যয় হয়েছে' : 'Spent'}</p>
-                        <p className={cn("text-lg font-bold", isOverBudget ? "text-red-600" : "text-slate-900 dark:text-white")}>
-                          ৳{stats.currentMonthExpense.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
+                  <div className="space-y-6">
+                    {budgets.map(b => {
+                      const spent = transactions
+                        ?.filter(t => t.type === 'expense' && t.category === b.category && new Date(t.date).toISOString().slice(0, 7) === currentMonth)
+                        .reduce((acc, curr) => acc + curr.amount, 0) || 0;
+                      const progress = (spent / b.amount) * 100;
+                      const over = progress > 100;
 
-                    <div className="space-y-2">
-                      <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(budgetProgress, 100)}%` }}
-                          className={cn(
-                            "h-full rounded-full transition-colors",
-                            budgetProgress > 90 ? "bg-red-500" : budgetProgress > 70 ? "bg-amber-500" : "bg-primary"
-                          )}
-                        />
-                      </div>
-                      <div className="flex justify-between text-[10px] font-bold">
-                        <span className={cn(isOverBudget ? "text-red-600" : "text-slate-400")}>
-                          {budgetProgress.toFixed(1)}% {lang === 'bn' ? 'ব্যবহৃত' : 'Used'}
-                        </span>
-                        <span className="text-slate-400">
-                          {lang === 'bn' ? 'অবশিষ্ট:' : 'Remaining:'} ৳{Math.max(0, budget.amount - stats.currentMonthExpense).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    {isOverBudget && (
-                      <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/30 flex items-center gap-2 text-red-600 text-xs font-bold">
-                        <ArrowDownLeft size={16} />
-                        {lang === 'bn' ? 'সাবধান! আপনি বাজেট ছাড়িয়ে গেছেন।' : 'Warning! You have exceeded your budget.'}
-                      </div>
-                    )}
+                      return (
+                        <div key={b.id} className="space-y-2 group">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-sm font-bold text-slate-900 dark:text-white">{b.category}</span>
+                              <span className="text-[10px] text-slate-400 ml-2">৳{spent.toLocaleString()} / ৳{b.amount.toLocaleString()}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => {
+                                  setEditingBudgetId(b.id!);
+                                  setBudgetAmount(b.amount.toString());
+                                  setBudgetCategory(b.category);
+                                  setShowBudgetForm(true);
+                                }}
+                                className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                {t.edit}
+                              </button>
+                              <button 
+                                onClick={() => b.id && handleDeleteBudget(b.id)}
+                                className="text-[10px] font-bold text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                {t.delete}
+                              </button>
+                              <span className={cn("text-xs font-bold", over ? "text-red-600" : "text-slate-500")}>
+                                {progress.toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min(progress, 100)}%` }}
+                              className={cn(
+                                "h-full rounded-full transition-colors",
+                                progress > 90 ? "bg-red-500" : progress > 70 ? "bg-amber-500" : "bg-primary"
+                              )}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -469,15 +622,26 @@ export default function TrackerView({ lang }: { lang: Language }) {
 
       {/* Budget Modal */}
       {showBudgetForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-6" onClick={() => setShowBudgetForm(false)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-6" onClick={() => { setShowBudgetForm(false); setEditingBudgetId(null); }}>
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            <h2 className="text-xl font-bold mb-6">{t.set_budget}</h2>
+            <h2 className="text-xl font-bold mb-6">{editingBudgetId ? t.edit : t.set_budget}</h2>
             <form onSubmit={handleBudgetSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">{t.category}</label>
+                <input 
+                  type="text" 
+                  value={budgetCategory}
+                  onChange={e => setBudgetCategory(e.target.value)}
+                  placeholder={lang === 'bn' ? 'যেমন: মোবাইল বিল' : 'e.g. Mobile Bill'}
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-none focus:ring-2 focus:ring-primary"
+                  required
+                />
+              </div>
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">{t.amount}</label>
                 <input 
@@ -492,7 +656,7 @@ export default function TrackerView({ lang }: { lang: Language }) {
               <div className="flex gap-3 pt-4">
                 <button 
                   type="button"
-                  onClick={() => setShowBudgetForm(false)}
+                  onClick={() => { setShowBudgetForm(false); setEditingBudgetId(null); }}
                   className="flex-1 p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold text-slate-500"
                 >
                   {t.cancel}

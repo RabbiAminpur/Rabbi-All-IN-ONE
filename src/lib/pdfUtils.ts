@@ -25,27 +25,35 @@ export async function exportToPDF(elementId: string, filename: string) {
     });
 
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdf = new jsPDF({
+      orientation: 'p',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
     
     const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    const ratio = imgProps.width / imgProps.height;
+    const renderWidth = pdfWidth;
+    const renderHeight = renderWidth / ratio;
     
-    // If content is longer than one page, we might need to handle multiple pages
-    // For now, we'll scale it to fit the width and let it overflow or scale down
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    // If content is longer than one page, add more pages
+    let heightLeft = renderHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, 'PNG', 0, position, renderWidth, renderHeight);
+    heightLeft -= pdfHeight;
+
+    while (heightLeft >= 0) {
+      position = heightLeft - renderHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, renderWidth, renderHeight);
+      heightLeft -= pdfHeight;
+    }
     
-    // Use Blob approach for better compatibility in iframes
-    const blob = pdf.output('blob');
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename.replace(/\s+/g, '_')}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
+    pdf.save(`${filename.replace(/\s+/g, '_')}.pdf`);
     return true;
   } catch (error) {
     console.error('PDF Export Error:', error);

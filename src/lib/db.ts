@@ -21,6 +21,7 @@ export interface Note {
 export interface Budget {
   id?: number;
   month: string; // YYYY-MM
+  category: string;
   amount: number;
 }
 
@@ -34,7 +35,7 @@ export class ProttoyDatabase extends Dexie {
     this.version(1).stores({
       transactions: '++id, type, category, date',
       notes: '++id, title, createdAt, updatedAt',
-      budgets: '++id, month'
+      budgets: '++id, [month+category]'
     });
   }
 }
