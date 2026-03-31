@@ -107,6 +107,15 @@ export default function NotebookView({ lang }: { lang: Language }) {
     }
   };
 
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!viewingNote) return;
+    setIsExporting(true);
+    await exportToPDF('note-content', viewingNote.title || 'note');
+    setIsExporting(false);
+  };
+
   return (
     <div className="space-y-6">
       {!viewingNote && !isEditorOpen && (
@@ -182,10 +191,14 @@ export default function NotebookView({ lang }: { lang: Language }) {
                 </button>
                 <div className="flex gap-2">
                   <button 
-                    onClick={() => exportToPDF('note-content', viewingNote.title || 'note')}
-                    className="p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 text-slate-600"
+                    onClick={handleExport}
+                    disabled={isExporting}
+                    className={cn(
+                      "p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 text-slate-600 transition-opacity",
+                      isExporting && "opacity-50 cursor-not-allowed"
+                    )}
                   >
-                    <Download size={20} />
+                    <Download size={20} className={isExporting ? "animate-bounce" : ""} />
                   </button>
                   <button 
                     onClick={() => { openEditor(viewingNote); setViewingNote(null); }}
