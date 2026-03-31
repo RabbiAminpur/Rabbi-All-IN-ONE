@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Wallet, Notebook, Settings, Plus, Scale, Target, Calculator } from 'lucide-react';
+import { Home, Wallet, Notebook, Settings, Plus, Target, Calculator } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from './lib/db';
 import { translations, type Language, cn } from './lib/utils';
@@ -9,12 +9,11 @@ import HomeView from './components/HomeView';
 import TrackerView from './components/TrackerView';
 import NotebookView from './components/NotebookView';
 import SettingsView from './components/SettingsView';
-import FinalAccountsView from './components/FinalAccountsView';
 import GoalsView from './components/GoalsView';
 import ProjectBudgetView from './components/ProjectBudgetView';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'tracker' | 'notes' | 'final' | 'goals' | 'settings' | 'calculator'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'tracker' | 'notes' | 'goals' | 'settings' | 'calculator'>('home');
   const [lang, setLang] = useState<Language>('bn');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -85,7 +84,6 @@ export default function App() {
       case 'home': return <HomeView lang={lang} setActiveTab={setActiveTab} />;
       case 'tracker': return <TrackerView lang={lang} />;
       case 'notes': return <NotebookView lang={lang} />;
-      case 'final': return <FinalAccountsView lang={lang} />;
       case 'goals': return <GoalsView lang={lang} />;
       case 'calculator': return <ProjectBudgetView lang={lang} onBack={() => setActiveTab('home')} />;
       case 'settings': return (
@@ -148,12 +146,6 @@ export default function App() {
           onClick={() => setActiveTab('notes')} 
           icon={<Notebook size={24} />} 
           label={t.notes} 
-        />
-        <NavButton 
-          active={activeTab === 'final'} 
-          onClick={() => setActiveTab('final')} 
-          icon={<Scale size={24} />} 
-          label={t.final_accounts} 
         />
         <NavButton 
           active={activeTab === 'goals'} 
@@ -234,13 +226,6 @@ export default function App() {
                 >
                   <Notebook className="text-pink-600" />
                   <span className="font-medium">{t.notes}</span>
-                </button>
-                <button 
-                  onClick={() => { setActiveTab('final'); setShowAddModal(false); }}
-                  className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex flex-col items-center gap-2 border border-amber-100 dark:border-amber-800"
-                >
-                  <Scale className="text-amber-600" />
-                  <span className="font-medium">{t.final_accounts}</span>
                 </button>
                 <button 
                   onClick={() => { setActiveTab('goals'); setShowAddModal(false); }}
